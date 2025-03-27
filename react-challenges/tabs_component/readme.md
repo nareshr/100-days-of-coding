@@ -5,7 +5,7 @@ You should make the tab functional so that when the tab Person is active then re
 
 We have already written some starting code along with styles for you. Your code should work as shown in the below GIF.
 
-![Alt Text]https://res.cloudinary.com/do79ncxtp/image/upload/v1743097282/image.wEwRtwCOoJqP8BQ6QxNwn_jraykx.gif
+![Alt Text](assets/demo_tabs_component.gif)
 
 Instructions
 1. Do not edit the data-testid attributes.
