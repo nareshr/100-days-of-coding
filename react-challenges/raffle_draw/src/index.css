@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+.name {
+    display: block; /* Ensures each name appears on a new line */
+    margin-bottom: 5px; /* Adds spacing between names */
+}
+  
+.name::before {
+    content: "• "; /* Adds a bullet point before each name */
+    color: black; /* You can change the color */
+    font-weight: bold;
+}
