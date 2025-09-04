@@ -74,13 +74,7 @@ Target: 11
 
 ---
 
-### 🎞 Animated Walkthrough
-
-👉 _(Attach your generated GIF/diagram here for clarity)_
-
----
-
-## ⚡ Python Code Example
+## ⚡ Find python code example - [Open binary_search.py](https://github.com/nareshr/100-days-of-coding/blob/master/algorithms/binary-search/binary_search.py)
 
 ---
 
