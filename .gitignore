@@ -11,7 +11,7 @@ yarn-error.log*
 # Dependencies
 node_modules/
 venv/
-.env/
+
 
 # Build outputs
 dist/
@@ -39,3 +39,5 @@ coverage/
 /react-challenges
 /mini-nodejs-projects
 /todo-cli
+
+**/.env

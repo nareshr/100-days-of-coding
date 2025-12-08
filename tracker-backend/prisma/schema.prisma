@@ -1,0 +1,199 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+//////////////////////////////////////////////////////
+// MODELS
+//////////////////////////////////////////////////////
+
+model User {
+  id           String  @id @default(uuid())
+  email        String  @unique
+  passwordHash String
+  name         String?
+  role         Role    @relation(fields: [roleId], references: [id])
+  roleId       Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // relations
+  topicProgress UserTopicProgress[]
+  weekProgress  UserWeekProgress[]
+  plans         UserPlan[]
+}
+
+model Role {
+  id          Int    @id @default(autoincrement())
+  name        String @unique
+  permissions Json?
+  users       User[]
+}
+
+//////////////////////////////////////////////////////
+// CATEGORY SYSTEM
+//////////////////////////////////////////////////////
+
+model Category {
+  id            String        @id @default(uuid())
+  name          String
+  description   String?
+  type          CategoryType
+  subcategories Subcategory[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum CategoryType {
+  DSA
+  SYSTEM_DESIGN
+  BEHAVIORAL
+  PROJECT
+  SPIRITUAL
+  FITNESS
+  CUSTOM
+}
+
+model Subcategory {
+  id         String   @id @default(uuid())
+  name       String
+  category   Category @relation(fields: [categoryId], references: [id])
+  categoryId String
+
+  topics Topic[]
+}
+
+//////////////////////////////////////////////////////
+// TOPICS
+//////////////////////////////////////////////////////
+
+model Topic {
+  id            String      @id @default(uuid())
+  title         String
+  difficulty    Difficulty?
+  type          TopicType?
+  estimatedTime Int?
+  link          String?
+  numericGoal   Int?
+  tags          String[]    @default([])
+
+  subcategory   Subcategory @relation(fields: [subcategoryId], references: [id])
+  subcategoryId String
+
+  // existing relations
+  planMappings WeeklyPlanTopic[]
+  progress     UserTopicProgress[]
+
+  // FIXED: add this
+  userPlanTasks UserPlanTask[]
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum TopicType {
+  DSA
+  SYSTEM_DESIGN
+  BEHAVIORAL
+  PROJECT
+  SPIRITUAL
+  FITNESS
+}
+
+//////////////////////////////////////////////////////
+// CANONICAL WEEKLY PLAN (GLOBAL TEMPLATE)
+//////////////////////////////////////////////////////
+
+model WeeklyPlanTopic {
+  id         String @id @default(uuid())
+  weekNumber Int
+  dayNumber  Int?
+
+  topic   Topic  @relation(fields: [topicId], references: [id])
+  topicId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userProgress UserTopicProgress[]
+}
+
+//////////////////////////////////////////////////////
+// USER-SPECIFIC PLANS
+//////////////////////////////////////////////////////
+
+model UserPlan {
+  id     String @id @default(uuid())
+  name   String
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+
+  totalWeeks Int
+  startDate  DateTime
+
+  createdAt DateTime @default(now())
+
+  tasks UserPlanTask[]
+}
+
+model UserPlanTask {
+  id String @id @default(uuid())
+
+  userPlan   UserPlan @relation(fields: [userPlanId], references: [id])
+  userPlanId String
+
+  topic   Topic  @relation(fields: [topicId], references: [id])
+  topicId String
+
+  weekNumber Int
+  dayNumber  Int
+
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+}
+
+//////////////////////////////////////////////////////
+// USER PROGRESS TRACKING
+//////////////////////////////////////////////////////
+
+model UserTopicProgress {
+  id     String @id @default(uuid())
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+
+  topic   Topic  @relation(fields: [topicId], references: [id])
+  topicId String
+
+  weeklyPlanTopic   WeeklyPlanTopic? @relation(fields: [weeklyPlanTopicId], references: [id])
+  weeklyPlanTopicId String?
+
+  weekNumber Int
+  dayNumber  Int?
+
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+}
+
+model UserWeekProgress {
+  id     String @id @default(uuid())
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+
+  weekNumber      Int
+  totalTopics     Int
+  completedTopics Int
+  completionRate  Float
+
+  updatedAt DateTime @updatedAt
+}
