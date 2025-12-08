@@ -59,5 +59,8 @@ export default defineConfig({
       }
     })
   ],
+  build: {
+    outDir: 'dist'
+  }
   // ensure the base is correct if deploying to subfolder; normally '/'
 })

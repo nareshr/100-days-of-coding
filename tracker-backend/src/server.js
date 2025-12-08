@@ -44,7 +44,7 @@ app.use("/api/v1/categories", categoryRoutes);
 // Health check
 app.get("/health", (req, res) => res.json({ ok: true, time: new Date() }));
 
-const port = process.env.PORT || 4000;
+const port = process.env.PORT || 5000;
 app.listen(port, () => {
   console.log(`Backend running on http://localhost:${port}`);
 });
