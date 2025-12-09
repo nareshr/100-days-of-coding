@@ -134,10 +134,26 @@ export async function getPlan(req, res) {
   }
   res.json(plan);
 }
+
 export async function createPlan(req, res) {
-  const r = await prisma.userPlan.create({ data: req.body });
-  res.json(r);
+  const { name, startDate, totalWeeks, userId } = req.body;
+
+  if (!userId) {
+    return res.status(400).json({ error: "userId is required" });
+  }
+
+  const plan = await prisma.userPlan.create({
+    data: {
+      name,
+      totalWeeks,
+      startDate: new Date(startDate),
+      userId: parseInt(userId)
+    }
+  });
+
+  res.json(plan);
 }
+
 export async function updatePlan(req, res) {
   const { id } = req.params;
   const r = await prisma.userPlan.update({ where: { id }, data: req.body });
