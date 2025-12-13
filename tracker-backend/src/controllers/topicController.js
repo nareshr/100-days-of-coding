@@ -1,4 +1,5 @@
 import prisma from '../prismaClient.js';
+import { getPagination } from "../utils/pagination.js";
 
 export async function list(req, res) {
   const { category, subcategory, difficulty, type, q } = req.query;
@@ -190,4 +191,56 @@ export async function weeklyPlanWeek(req, res) {
   });
 
   res.json(items);
+};
+
+export const getTopics = async (req, res) => {
+  try {
+    const { page, limit, skip } = getPagination(req);
+
+    const { q, categoryId, subcategoryId } = req.query;
+
+    const where = {};
+
+    if (q) {
+      where.title = { contains: q, mode: "insensitive" };
+    }
+
+    if (subcategoryId) {
+      where.subcategoryId = String(subcategoryId);
+    }
+
+    if (categoryId) {
+      where.subcategory = {
+        categoryId: String(categoryId),
+      };
+    }
+
+    const [items, total] = await Promise.all([
+      prisma.topic.findMany({
+        where,
+        skip,
+        take: limit,
+        include: {
+          subcategory: {
+            include: {
+              category: true,
+            },
+          },
+        },
+        orderBy: { id: "asc" },
+      }),
+      prisma.topic.count({ where }),
+    ]);
+
+    return res.json({
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+      items,
+    });
+  } catch (err) {
+    console.error("getTopics error:", err);
+    return res.status(500).json({ error: "Failed to fetch topics" });
+  }
 };

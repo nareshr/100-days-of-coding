@@ -6,7 +6,8 @@ import { requireAuth, requireRole } from "../middlewares/authMiddleware.js";
 const router = express.Router();
 
 // Public routes
-router.get("/", topics.list);
+// router.get("/", topics.list);
+router.get("/", topics.getTopics); // now paginated
 router.get("/weeklyplan", topics.weeklyPlan);
 router.get("/weeklyplan/:weekNumber", topics.weeklyPlanWeek);
 

@@ -1,5 +1,6 @@
 import prisma from '../prismaClient.js';
 import bcrypt from 'bcryptjs';
+import { getPagination } from "../utils/pagination.js";
 
 export async function setRole(req, res) {
   const { id } = req.params;
@@ -23,6 +24,32 @@ export async function listUsers(req, res) {
   });
   res.json(users);
 }
+
+export const getUsers = async (req, res) => {
+  try {
+    const { page, limit, skip } = getPagination(req);
+
+    const [items, total] = await Promise.all([
+      prisma.user.findMany({
+        skip,
+        take: limit,
+        orderBy: { id: "asc" },
+      }),
+      prisma.user.count(),
+    ]);
+
+    return res.json({
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+      items,
+    });
+  } catch (err) {
+    console.error("getUsers error:", err);
+    res.status(500).json({ error: "Failed to fetch users" });
+  }
+};
 
 export async function createUser(req, res) {
   const { name, email, password, role } = req.body;
@@ -122,6 +149,31 @@ export async function deleteCategory(req, res) {
 }
 
 /* PLANS */
+
+export async function getPlans(req, res) {
+  try {
+    const { page, limit, skip } = getPagination(req);
+
+    const [items, total] = await Promise.all([
+      prisma.userPlan.findMany({
+        skip,
+        take: limit,
+        orderBy: { id: "desc" }
+      }),
+      prisma.userPlan.count()
+    ]);
+
+    res.json({
+      page, limit, total,
+      totalPages: Math.ceil(total / limit),
+      items
+    });
+  } catch (err) {
+    console.error("getPlans", err);
+    res.status(500).json({ error: "Failed to fetch plans" });
+  }
+}
+
 export async function listPlans(req, res) {
   const rows = await prisma.userPlan.findMany();
   res.json(rows);
@@ -136,7 +188,12 @@ export async function getPlan(req, res) {
 }
 
 export async function createPlan(req, res) {
-  const { name, startDate, totalWeeks, userId } = req.body;
+
+  console.log(req.user.id)
+
+  const { name, startDate, totalWeeks } = req.body;
+
+  const userId = req.user.id
 
   if (!userId) {
     return res.status(400).json({ error: "userId is required" });
@@ -147,7 +204,7 @@ export async function createPlan(req, res) {
       name,
       totalWeeks,
       startDate: new Date(startDate),
-      userId: parseInt(userId)
+      userId: userId
     }
   });
 
@@ -167,27 +224,63 @@ export async function deletePlan(req, res) {
 
 // PLAN TASKS MANAGEMENT
 export async function getPlanTasks(req, res) {
-  const { id } = req.params;
-  const tasks = await prisma.userPlanTask.findMany({
-    where: { userPlanId: id },
-    include: {
-      topic: {
+  try {
+    const { page, limit, skip } = getPagination(req);
+    const planId = String(req.params.id);
+
+    const [items, total] = await Promise.all([
+      prisma.userPlanTask.findMany({
+        where: { userPlanId: planId },
+        skip,
+        take: limit,
+        orderBy: [{ weekNumber: "asc" }, { dayNumber: "asc" }],
         include: {
-          subcategory: {
+          topic: {
             include: {
-              category: true
+              subcategory: {
+                include: { category: true }
+              }
             }
           }
         }
-      }
-    },
-    orderBy: [
-      { weekNumber: 'asc' },
-      { dayNumber: 'asc' }
-    ]
-  });
-  res.json(tasks);
+      }),
+      prisma.userPlanTask.count({ where: { userPlanId: planId } })
+    ]);
+
+    res.json({
+      page, limit, total,
+      totalPages: Math.ceil(total / limit),
+      items
+    });
+
+  } catch (err) {
+    console.error("getPlanTasks error", err);
+    res.status(500).json({ error: "Failed to fetch tasks" });
+  }
 }
+
+// export async function getPlanTasks(req, res) {
+//   const { id } = req.params;
+//   const tasks = await prisma.userPlanTask.findMany({
+//     where: { userPlanId: id },
+//     include: {
+//       topic: {
+//         include: {
+//           subcategory: {
+//             include: {
+//               category: true
+//             }
+//           }
+//         }
+//       }
+//     },
+//     orderBy: [
+//       { weekNumber: 'asc' },
+//       { dayNumber: 'asc' }
+//     ]
+//   });
+//   res.json(tasks);
+// }
 
 export async function createPlanTask(req, res) {
   const { id } = req.params;
@@ -274,54 +367,114 @@ export async function bulkCreatePlanTasks(req, res) {
 }
 
 // EXPORT PLAN DATA
-export async function exportPlanCSV(req, res) {
-  const { id } = req.params;
-  const plan = await prisma.userPlan.findUnique({ where: { id } });
-  if (!plan) {
-    return res.status(404).json({ error: 'Plan not found' });
-  }
+export const exportPlanCSV = async (req, res) => {
+  try {
+    const id = req.params.id;
 
-  const tasks = await prisma.userPlanTask.findMany({
-    where: { userPlanId: id },
-    include: {
-      topic: {
-        include: {
-          subcategory: {
-            include: {
-              category: true
+    const plan = await prisma.userPlan.findUnique({
+      where: { id },
+      include: {
+        tasks: {
+          include: {
+            topic: {
+              include: {
+                subcategory: {
+                  include: {
+                    category: true
+                  }
+                }
+              }
             }
           }
         }
       }
-    },
-    orderBy: [
-      { weekNumber: 'asc' },
-      { dayNumber: 'asc' }
-    ]
-  });
+    });
 
-  // Generate CSV
-  const headers = ['Week', 'Day', 'Topic Title', 'Category', 'Subcategory', 'Difficulty', 'Link', 'Completed'];
-  const rows = tasks.map(t => [
-    t.weekNumber,
-    t.dayNumber,
-    t.topic.title,
-    t.topic.subcategory.category.name,
-    t.topic.subcategory.name,
-    t.topic.difficulty || '',
-    t.topic.link || '',
-    t.completed ? 'Yes' : 'No'
-  ]);
+    if (!plan) {
+      return res.status(404).json({ error: "Plan not found" });
+    }
 
-  const csv = [
-    headers.join(','),
-    ...rows.map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
-  ].join('\n');
+    // Build CSV
+    let csv = "Week,Day,Category,Subcategory,Topic,Link\n";
 
-  res.setHeader('Content-Type', 'text/csv');
-  res.setHeader('Content-Disposition', `attachment; filename="plan-${plan.name}-${Date.now()}.csv"`);
-  res.send(csv);
-}
+    for (const t of plan.tasks) {
+      csv += [
+        t.weekNumber,
+        t.dayNumber,
+        t.topic.subcategory.category.name,
+        t.topic.subcategory.name,
+        t.topic.title,
+        t.topic.link || ""
+      ]
+        .map((v) => `"${String(v).replace(/"/g, '""')}"`)
+        .join(",") + "\n";
+    }
+
+    // UTF-8 encoded filename for Gujarati
+    const fileName = `${plan.name}.csv`;
+    const encodedFileName = encodeURIComponent(fileName);
+
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename*=UTF-8''${encodedFileName}`
+    );
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+
+    return res.send(csv);
+  } catch (err) {
+    console.error("exportPlanCSV error:", err);
+    res.status(500).json({ error: "Failed to export CSV" });
+  }
+};
+
+// export async function exportPlanCSV(req, res) {
+//   const { id } = req.params;
+//   const plan = await prisma.userPlan.findUnique({ where: { id } });
+//   if (!plan) {
+//     return res.status(404).json({ error: 'Plan not found' });
+//   }
+
+//   const tasks = await prisma.userPlanTask.findMany({
+//     where: { userPlanId: id },
+//     include: {
+//       topic: {
+//         include: {
+//           subcategory: {
+//             include: {
+//               category: true
+//             }
+//           }
+//         }
+//       }
+//     },
+//     orderBy: [
+//       { weekNumber: 'asc' },
+//       { dayNumber: 'asc' }
+//     ]
+//   });
+
+//   // Generate CSV
+//   const headers = ['Week', 'Day', 'Topic Title', 'Category', 'Subcategory', 'Difficulty', 'Link', 'Completed'];
+//   const rows = tasks.map(t => [
+//     t.weekNumber,
+//     t.dayNumber,
+//     t.topic.title,
+//     t.topic.subcategory.category.name,
+//     t.topic.subcategory.name,
+//     t.topic.difficulty || '',
+//     t.topic.link || '',
+//     t.completed ? 'Yes' : 'No'
+//   ]);
+
+//   const csv = [
+//     headers.join(','),
+//     ...rows.map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+//   ].join('\n');
+
+//   res.setHeader('Content-Type', 'text/csv');
+//   res.setHeader('Content-Disposition', `attachment; filename="plan-${plan.name}-${Date.now()}.csv"`);
+//   res.send(csv);
+// }
 
 export async function exportPlanJSON(req, res) {
   const { id } = req.params;

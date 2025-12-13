@@ -10,7 +10,8 @@ router.use(requireAuth);
 router.use(requireRole(["admin", "manager"]));
 
 // users
-router.get("/users", admin.listUsers);
+// router.get("/users", admin.listUsers);
+router.get("/users", admin.getUsers);
 router.post("/users", admin.createUser);
 router.put("/users/:id", admin.updateUser);
 router.delete("/users/:id", admin.deleteUser);
@@ -22,7 +23,8 @@ router.put("/categories/:id", admin.updateCategory);
 router.delete("/categories/:id", admin.deleteCategory);
 
 // plans
-router.get("/plans", admin.listPlans);
+router.get("/plans", admin.getPlans);
+// router.get("/plans", admin.listPlans);
 router.get("/plans/:id", admin.getPlan);
 router.post("/plans", admin.createPlan);
 router.put("/plans/:id", admin.updatePlan);

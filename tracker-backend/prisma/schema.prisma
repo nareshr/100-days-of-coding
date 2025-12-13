@@ -69,6 +69,7 @@ model Subcategory {
   categoryId String
 
   topics Topic[]
+  @@index([categoryId])
 }
 
 //////////////////////////////////////////////////////
@@ -94,6 +95,9 @@ model Topic {
 
   // FIXED: add this
   userPlanTasks UserPlanTask[]
+
+  @@index([subcategoryId])
+  @@index([title])
 }
 
 enum Difficulty {

@@ -6,6 +6,11 @@ const api = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
+// Pagination helper
+export function paginatedGet(url, page = 1, limit = 20) {
+  return api.get(`${url}?page=${page}&limit=${limit}`);
+}
+
 // Attach token for each request if present in localStorage
 api.interceptors.request.use(
   (config) => {
