@@ -14,3 +14,28 @@ Tests:
 7. largestPrimeFactor(13195) should return 29.
 8. largestPrimeFactor(600851475143) should return 6857.
 """
+
+def largestPrimeFactor(n):
+    prime_factors = []
+    sqrt = int(n ** 0.5)
+    for i in range(2, sqrt + 1):
+        is_prime = True
+        if n % i == 0:
+            for j in range(2, i):
+                if i % j == 0:
+                    is_prime = False
+                    break
+            if is_prime:
+                prime_factors.append(i)
+
+    if len(prime_factors) == 0:
+        return n
+    return max(prime_factors)
+
+print(largestPrimeFactor(2))
+print(largestPrimeFactor(3))
+print(largestPrimeFactor(5))
+print(largestPrimeFactor(7))
+print(largestPrimeFactor(8))
+print(largestPrimeFactor(13195))
+print(largestPrimeFactor(600851475143))
